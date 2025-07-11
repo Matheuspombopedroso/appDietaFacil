@@ -18,11 +18,11 @@ function getISOWeek(d) {
 
 app.post("/api/entries", async (req, res) => {
   try {
-    const { date, weightKg, calories } = req.body;
+    const { date, weight, calories } = req.body;
     const entry = await prisma.entry.upsert({
       where: { date: new Date(date) },
-      update: { weightKg, calories },
-      create: { date: new Date(date), weightKg, calories },
+      update: { weightKg: weight, calories },
+      create: { date: new Date(date), weightKg: weight, calories },
     });
     res.json(entry);
   } catch (error) {
@@ -39,65 +39,132 @@ app.get("/api/entries", async (_req, res) => {
   }
 });
 
-app.get("/api/entries/:date", async (req, res) => {
-  const { date } = req.params;
+app.get("/api/entries", async (req, res) => {
   try {
-    const entry = await prisma.entry.findUnique({
-      where: { date: new Date(date) },
-    });
-    if (entry) {
-      res.json(entry);
+    const { date } = req.query;
+    if (date) {
+      const entry = await prisma.entry.findUnique({
+        where: { date: new Date(date) },
+      });
+      if (entry) {
+        res.json([entry]);
+      } else {
+        res.json([]);
+      }
     } else {
-      res.status(404).json({ message: "Entry not found" });
+      const entries = await prisma.entry.findMany({ orderBy: { date: "asc" } });
+      res.json(entries);
     }
   } catch (error) {
-    res.status(400).json({ message: "Invalid date format" });
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put("/api/entries/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { date, weight, calories } = req.body;
+    const entry = await prisma.entry.update({
+      where: { id: parseInt(id) },
+      data: { date: new Date(date), weightKg: weight, calories },
+    });
+    res.json(entry);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
   }
 });
 
 app.get("/api/progress", async (_req, res) => {
   try {
     const entries = await prisma.entry.findMany({ orderBy: { date: "asc" } });
-    if (!entries.length) return res.json({ weeks: [], months: [] });
+    if (!entries.length)
+      return res.json({
+        weeklyWeightLoss: 0,
+        monthlyWeightLoss: 0,
+        weeklyCalorieAvg: 0,
+        monthlyCalorieAvg: 0,
+      });
 
-    const byWeek = new Map();
-    const byMonth = new Map();
+    // Calculate weekly and monthly weight loss
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-    entries.forEach((e) => {
-      const d = new Date(e.date);
-      const weekKey = `${d.getFullYear()}-${getISOWeek(d)}`;
-      const monthKey = `${d.getFullYear()}-${d.getMonth() + 1}`;
+    const recentEntries = entries.filter((e) => new Date(e.date) >= weekAgo);
+    const monthlyEntries = entries.filter((e) => new Date(e.date) >= monthAgo);
 
-      if (!byWeek.has(weekKey))
-        byWeek.set(weekKey, { startKg: e.weightKg, endKg: e.weightKg });
-      else byWeek.get(weekKey).endKg = e.weightKg;
+    const weeklyWeightLoss =
+      recentEntries.length >= 2
+        ? recentEntries[0].weightKg -
+          recentEntries[recentEntries.length - 1].weightKg
+        : 0;
 
-      if (!byMonth.has(monthKey))
-        byMonth.set(monthKey, { startKg: e.weightKg, endKg: e.weightKg });
-      else byMonth.get(monthKey).endKg = e.weightKg;
+    const monthlyWeightLoss =
+      monthlyEntries.length >= 2
+        ? monthlyEntries[0].weightKg -
+          monthlyEntries[monthlyEntries.length - 1].weightKg
+        : 0;
+
+    const weeklyCalorieAvg =
+      recentEntries.length > 0
+        ? recentEntries.reduce((sum, e) => sum + e.calories, 0) /
+          recentEntries.length
+        : 0;
+
+    const monthlyCalorieAvg =
+      monthlyEntries.length > 0
+        ? monthlyEntries.reduce((sum, e) => sum + e.calories, 0) /
+          monthlyEntries.length
+        : 0;
+
+    res.json({
+      weeklyWeightLoss: +weeklyWeightLoss.toFixed(1),
+      monthlyWeightLoss: +monthlyWeightLoss.toFixed(1),
+      weeklyCalorieAvg: +weeklyCalorieAvg.toFixed(0),
+      monthlyCalorieAvg: +monthlyCalorieAvg.toFixed(0),
     });
-
-    const weeks = Array.from(byWeek.entries()).map(([key, v]) => {
-      const [year, week] = key.split("-");
-      return {
-        year: +year,
-        week: +week,
-        lossKg: +(v.startKg - v.endKg).toFixed(2),
-      };
-    });
-
-    const months = Array.from(byMonth.entries()).map(([key, v]) => {
-      const [year, month] = key.split("-");
-      return {
-        year: +year,
-        month: +month,
-        lossKg: +(v.startKg - v.endKg).toFixed(2),
-      };
-    });
-
-    res.json({ weeks, months });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/api/goals", async (_req, res) => {
+  try {
+    const goals = await prisma.goal.findMany();
+    res.json(goals);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/goals", async (req, res) => {
+  try {
+    const { type, targetWeightLoss, targetCalories, startDate, endDate } =
+      req.body;
+    const goal = await prisma.goal.create({
+      data: {
+        year: new Date(startDate).getFullYear(),
+        month: new Date(startDate).getMonth() + 1,
+        weekOfYear: getISOWeek(new Date(startDate)),
+        weeklyTargetKg: type === "weekly" ? targetWeightLoss : 0,
+        monthlyTargetKg: type === "monthly" ? targetWeightLoss : 0,
+      },
+    });
+    res.json(goal);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.delete("/api/goals/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    await prisma.goal.delete({
+      where: { id: parseInt(id) },
+    });
+    res.json({ message: "Goal deleted successfully" });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
   }
 });
 
