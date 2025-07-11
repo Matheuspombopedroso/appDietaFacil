@@ -9,12 +9,22 @@ interface Entry {
 
 const DailyEntry: React.FC = () => {
   const [entry, setEntry] = useState<Entry>({
-    date: new Date().toISOString().split("T")[0],
+    date: new Date().toLocaleDateString("en-CA"), // Formato YYYY-MM-DD
     weightKg: 0,
     calories: 0,
   });
   const [isEditing, setIsEditing] = useState(false);
   const [message, setMessage] = useState("");
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Atualizar o horário a cada segundo
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     fetchTodayEntry();
@@ -80,6 +90,12 @@ const DailyEntry: React.FC = () => {
         <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
           Entrada Diária
         </h2>
+        <p className="text-sm text-gray-500 text-center mb-4">
+          Fuso horário: São Paulo (GMT-3) • Horário atual:{" "}
+          {currentTime.toLocaleTimeString("pt-BR", {
+            timeZone: "America/Sao_Paulo",
+          })}
+        </p>
 
         {message && (
           <div
@@ -109,6 +125,12 @@ const DailyEntry: React.FC = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             />
+            <p className="text-xs text-gray-500 mt-1">
+              Entrada será registrada com o horário atual:{" "}
+              {currentTime.toLocaleTimeString("pt-BR", {
+                timeZone: "America/Sao_Paulo",
+              })}
+            </p>
           </div>
 
           <div>

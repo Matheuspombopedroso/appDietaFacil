@@ -1,6 +1,10 @@
 import express from "express";
 import cors from "cors";
 import { PrismaClient } from "@prisma/client";
+import { zonedTimeToUtc, utcToZonedTime, format } from "date-fns-tz";
+
+// Fuso horário de São Paulo
+const TIMEZONE = "America/Sao_Paulo";
 
 const prisma = new PrismaClient();
 const app = express();
@@ -19,10 +23,22 @@ function getISOWeek(d) {
 app.post("/api/entries", async (req, res) => {
   try {
     const { date, weight, calories } = req.body;
+    // Usar o horário atual de São Paulo
+    const now = new Date();
+    const spTime = utcToZonedTime(now, TIMEZONE);
+    const entryDate = new Date(date);
+    entryDate.setHours(
+      spTime.getHours(),
+      spTime.getMinutes(),
+      spTime.getSeconds()
+    );
+
+    // Converter para UTC antes de salvar
+    const utcDate = zonedTimeToUtc(entryDate, TIMEZONE);
     const entry = await prisma.entry.upsert({
-      where: { date: new Date(date) },
+      where: { date: utcDate },
       update: { weightKg: weight, calories },
-      create: { date: new Date(date), weightKg: weight, calories },
+      create: { date: utcDate, weightKg: weight, calories },
     });
     res.json(entry);
   } catch (error) {
@@ -30,30 +46,40 @@ app.post("/api/entries", async (req, res) => {
   }
 });
 
-app.get("/api/entries", async (_req, res) => {
-  try {
-    const entries = await prisma.entry.findMany({ orderBy: { date: "asc" } });
-    res.json(entries);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
 app.get("/api/entries", async (req, res) => {
   try {
     const { date } = req.query;
     if (date) {
+      const utcDate = zonedTimeToUtc(new Date(date), TIMEZONE);
       const entry = await prisma.entry.findUnique({
-        where: { date: new Date(date) },
+        where: { date: utcDate },
       });
       if (entry) {
-        res.json([entry]);
+        // Converter de volta para o fuso horário local
+        const localDate = utcToZonedTime(entry.date, TIMEZONE);
+        const formattedEntry = {
+          ...entry,
+          date: format(localDate, "yyyy-MM-dd", { timeZone: TIMEZONE }),
+        };
+        res.json([formattedEntry]);
       } else {
         res.json([]);
       }
     } else {
       const entries = await prisma.entry.findMany({ orderBy: { date: "asc" } });
-      res.json(entries);
+      // Converter todas as datas para o fuso horário local
+      const formattedEntries = entries.map((entry) => {
+        const localDate = utcToZonedTime(entry.date, TIMEZONE);
+        return {
+          ...entry,
+          date: format(localDate, "yyyy-MM-dd", { timeZone: TIMEZONE }),
+          time: format(localDate, "HH:mm", { timeZone: TIMEZONE }),
+          fullDateTime: format(localDate, "yyyy-MM-dd HH:mm", {
+            timeZone: TIMEZONE,
+          }),
+        };
+      });
+      res.json(formattedEntries);
     }
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -64,9 +90,20 @@ app.put("/api/entries/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const { date, weight, calories } = req.body;
+    // Usar o horário atual de São Paulo
+    const now = new Date();
+    const spTime = utcToZonedTime(now, TIMEZONE);
+    const entryDate = new Date(date);
+    entryDate.setHours(
+      spTime.getHours(),
+      spTime.getMinutes(),
+      spTime.getSeconds()
+    );
+
+    const utcDate = zonedTimeToUtc(entryDate, TIMEZONE);
     const entry = await prisma.entry.update({
       where: { id: parseInt(id) },
-      data: { date: new Date(date), weightKg: weight, calories },
+      data: { date: utcDate, weightKg: weight, calories },
     });
     res.json(entry);
   } catch (error) {
@@ -85,8 +122,8 @@ app.get("/api/progress", async (_req, res) => {
         monthlyCalorieAvg: 0,
       });
 
-    // Calculate weekly and monthly weight loss
-    const now = new Date();
+    // Calculate weekly and monthly weight loss using São Paulo timezone
+    const now = utcToZonedTime(new Date(), TIMEZONE);
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 

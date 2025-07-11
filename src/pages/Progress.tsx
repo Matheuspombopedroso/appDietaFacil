@@ -3,6 +3,8 @@ import React, { useState, useEffect } from "react";
 interface Entry {
   id: number;
   date: string;
+  time?: string;
+  fullDateTime?: string;
   weightKg: number;
   calories: number;
 }
@@ -92,7 +94,10 @@ const Progress: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-900">Progresso</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-gray-900">Progresso</h2>
+        <p className="text-sm text-gray-500">Fuso horário: São Paulo (GMT-3)</p>
+      </div>
 
       {/* Cards de resumo */}
       {progressData && (
@@ -230,7 +235,11 @@ const Progress: React.FC = () => {
                     .map((entry) => (
                       <tr key={entry.id}>
                         <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {new Date(entry.date).toLocaleDateString("pt-BR")}
+                          {entry.fullDateTime
+                            ? `${new Date(entry.date).toLocaleDateString(
+                                "pt-BR"
+                              )} ${entry.time}`
+                            : new Date(entry.date).toLocaleDateString("pt-BR")}
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
                           {entry.weightKg} kg

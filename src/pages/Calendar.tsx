@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from "react";
+import { format, toZonedTime } from "date-fns-tz";
 
 interface Entry {
   id: number;
   date: string;
+  time?: string;
+  fullDateTime?: string;
   weightKg: number;
   calories: number;
 }
@@ -11,6 +14,16 @@ const Calendar: React.FC = () => {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [loading, setLoading] = useState(true);
+  const [timezone, setTimezone] = useState("America/Sao_Paulo");
+
+  const timezones = [
+    { value: "America/Sao_Paulo", label: "São Paulo (GMT-3)" },
+    { value: "America/New_York", label: "Nova York (GMT-5)" },
+    { value: "America/Los_Angeles", label: "Los Angeles (GMT-8)" },
+    { value: "Europe/London", label: "Londres (GMT+0)" },
+    { value: "Europe/Paris", label: "Paris (GMT+1)" },
+    { value: "Asia/Tokyo", label: "Tóquio (GMT+9)" },
+  ];
 
   useEffect(() => {
     fetchEntries();
@@ -31,8 +44,9 @@ const Calendar: React.FC = () => {
   };
 
   const getDaysInMonth = (date: Date) => {
-    const year = date.getFullYear();
-    const month = date.getMonth();
+    const zonedDate = toZonedTime(date, timezone);
+    const year = zonedDate.getFullYear();
+    const month = zonedDate.getMonth();
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
     const startDate = new Date(firstDay);
@@ -50,17 +64,25 @@ const Calendar: React.FC = () => {
   };
 
   const getEntryForDate = (date: Date) => {
-    const dateString = date.toISOString().split("T")[0];
+    const zonedDate = toZonedTime(date, timezone);
+    const dateString = format(zonedDate, "yyyy-MM-dd", { timeZone: timezone });
     return entries.find((entry) => entry.date === dateString);
   };
 
   const isCurrentMonth = (date: Date) => {
-    return date.getMonth() === currentDate.getMonth();
+    const zonedCurrentDate = toZonedTime(currentDate, timezone);
+    const zonedDate = toZonedTime(date, timezone);
+    return zonedDate.getMonth() === zonedCurrentDate.getMonth();
   };
 
   const isToday = (date: Date) => {
     const today = new Date();
-    return date.toDateString() === today.toDateString();
+    const zonedToday = toZonedTime(today, timezone);
+    const zonedDate = toZonedTime(date, timezone);
+    return (
+      format(zonedDate, "yyyy-MM-dd", { timeZone: timezone }) ===
+      format(zonedToday, "yyyy-MM-dd", { timeZone: timezone })
+    );
   };
 
   const formatDate = (date: Date) => {
@@ -68,7 +90,10 @@ const Calendar: React.FC = () => {
   };
 
   const getMonthName = (date: Date) => {
-    return date.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+    const zonedDate = toZonedTime(date, timezone);
+    return format(zonedDate, "MMMM yyyy", {
+      timeZone: timezone,
+    });
   };
 
   const previousMonth = () => {
@@ -98,46 +123,70 @@ const Calendar: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-gray-900">Calendário</h2>
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={previousMonth}
-            className="p-2 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+        <div className="flex items-center space-x-4">
+          {/* Seletor de fuso horário */}
+          <div className="flex items-center space-x-2">
+            <label
+              htmlFor="timezone"
+              className="text-sm font-medium text-gray-700"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
-          </button>
-          <span className="text-lg font-semibold text-gray-900 min-w-[200px] text-center">
-            {getMonthName(currentDate)}
-          </span>
-          <button
-            onClick={nextMonth}
-            className="p-2 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+              Fuso:
+            </label>
+            <select
+              id="timezone"
+              value={timezone}
+              onChange={(e) => setTimezone(e.target.value)}
+              className="px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5l7 7-7 7"
-              />
-            </svg>
-          </button>
+              {timezones.map((tz) => (
+                <option key={tz.value} value={tz.value}>
+                  {tz.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={previousMonth}
+              className="p-2 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 19l-7-7 7-7"
+                />
+              </svg>
+            </button>
+            <span className="text-lg font-semibold text-gray-900 min-w-[200px] text-center">
+              {getMonthName(currentDate)}
+            </span>
+            <button
+              onClick={nextMonth}
+              className="p-2 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -190,6 +239,11 @@ const Calendar: React.FC = () => {
                       <div className="text-xs text-gray-500">
                         {entry.calories} cal
                       </div>
+                      {entry.time && (
+                        <div className="text-xs text-gray-400">
+                          {entry.time}
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -219,6 +273,10 @@ const Calendar: React.FC = () => {
           <div className="flex items-center space-x-2">
             <div className="w-3 h-3 bg-gray-50 rounded"></div>
             <span>Outro mês</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+            <span>Horário da pesagem</span>
           </div>
         </div>
       </div>
