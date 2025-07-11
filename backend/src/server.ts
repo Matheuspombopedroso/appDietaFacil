@@ -59,7 +59,7 @@ app.get("/api/progress", async (_req, res) => {
   const byWeek = new Map<string, { startKg: number; endKg: number }>();
   const byMonth = new Map<string, { startKg: number; endKg: number }>();
 
-  entries.forEach((e) => {
+  entries.forEach((e: any) => {
     const d = new Date(e.date);
     const weekKey = `${d.getFullYear()}-${getISOWeek(d)}`;
     const monthKey = `${d.getFullYear()}-${d.getMonth() + 1}`;

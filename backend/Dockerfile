@@ -3,7 +3,7 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files from root
 COPY package*.json ./
 COPY pnpm-lock.yaml ./
 
@@ -14,12 +14,6 @@ RUN pnpm install
 # Copy source code
 COPY . .
 
-# Generate Prisma client
-RUN npx prisma generate
-
-# Build TypeScript (if using TypeScript)
-RUN npm run build || echo "No build script found, using source files"
-
 # Production stage
 FROM node:18-alpine
 
@@ -28,16 +22,15 @@ WORKDIR /app
 # Install pnpm
 RUN npm install -g pnpm
 
-# Copy package files
+# Copy package files from root
 COPY package*.json ./
 COPY pnpm-lock.yaml ./
 
-# Install only production dependencies
-RUN pnpm install --prod
+# Install all dependencies
+RUN pnpm install
 
-# Copy built files and Prisma
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+# Copy server and Prisma files
+COPY --from=builder /app/server.js ./
 COPY --from=builder /app/prisma ./prisma
 
 # Create non-root user
@@ -55,5 +48,5 @@ EXPOSE 4000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:4000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })" || exit 1
 
-# Start the application
-CMD ["node", "server.js"] 
+# Start the application with Prisma generate at runtime
+CMD ["sh", "-c", "npx prisma generate && node server.js"] 

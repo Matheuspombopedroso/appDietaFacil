@@ -14,8 +14,11 @@ RUN pnpm install
 # Copy source code
 COPY . .
 
-# Build the app
-RUN pnpm run build
+# Generate Prisma client first
+RUN npx prisma generate
+
+# Build the frontend app only
+RUN pnpm run build:frontend
 
 # Production stage
 FROM nginx:alpine

@@ -6,11 +6,13 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:frontend": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "test": "jest",
     "server": "ts-node-dev --project backend/tsconfig.json backend/src/server.ts",
-    "server:js": "node server.js"
+    "server:js": "node server.js",
+    "start": "node server.js"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
