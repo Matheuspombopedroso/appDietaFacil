@@ -2,73 +2,90 @@
 
 Aplicação para rastreamento de peso e calorias com interface React e backend Node.js.
 
-## 🚀 Deploy com Nixpacks
+## 🐳 Deploy com Docker
 
 ### Estrutura do Projeto
 
 ```
 weight-tracker/
-├── src/                 # Frontend React
-├── backend/            # Backend Node.js + Express
-├── prisma/            # Schema do banco de dados
-├── nixpacks.toml      # Configuração Nixpacks (Frontend)
-└── backend/nixpacks.toml  # Configuração Nixpacks (Backend)
+├── Dockerfile              # Frontend (React + Nginx)
+├── backend/Dockerfile      # Backend (Node.js + Express)
+├── docker-compose.yml      # Orquestração (sem PostgreSQL)
+├── nginx.conf             # Configuração Nginx
+└── prisma/               # Schema do banco de dados
 ```
 
-### Deploy no Railway
+### Pré-requisitos
 
-#### 1. Backend
+- **Docker** e **Docker Compose** instalados
+- **PostgreSQL** configurado no EasyPanel
+- **Credenciais** do banco de dados
 
-```bash
-# 1. Conectar repositório ao Railway
-# 2. Configurar variáveis de ambiente:
-DATABASE_URL=postgresql://...
-PORT=4000
-NODE_ENV=production
-
-# 3. Nixpacks detectará automaticamente:
-# - Node.js project
-# - Prisma migrations
-# - TypeScript build
-```
-
-#### 2. Frontend
+### Deploy Rápido
 
 ```bash
-# 1. Conectar repositório ao Railway
-# 2. Nixpacks detectará automaticamente:
-# - React + Vite
-# - Build process
-# - Static files
+# 1. Clone o repositório
+git clone <seu-repo>
+cd weight-tracker
+
+# 2. Configure as variáveis de ambiente
+cp env.example .env
+# Edite .env com suas credenciais do EasyPanel
+
+# 3. Teste a conexão com o banco
+docker-compose run --rm backend npx prisma migrate deploy
+
+# 4. Deploy com Docker Compose
+docker-compose up -d --build
+
+# 5. Acesse a aplicação
+# Frontend: http://localhost
+# Backend: http://localhost:4000
 ```
 
 ### Variáveis de Ambiente
 
-#### Backend (.env)
+Criar arquivo `.env`:
 
 ```env
-DATABASE_URL="postgresql://user:password@host:port/database"
-PORT=4000
+# Database (EasyPanel PostgreSQL)
+DATABASE_URL=postgresql://username:password@your-easypanel-host:5432/database_name?schema=public
+
+# Backend
 NODE_ENV=production
+PORT=4000
+
+# Frontend (opcional)
+VITE_API_URL=http://localhost:4000
 ```
-
-#### Frontend
-
-Configure a URL da API no arquivo de configuração do Vite.
 
 ## 🛠️ Desenvolvimento Local
 
-### Backend
+### Com Docker
 
 ```bash
+# Iniciar todos os serviços
+docker-compose up
+
+# Ver logs
+docker-compose logs -f
+
+# Parar serviços
+docker-compose down
+
+# Testar conexão com banco
+docker-compose run --rm backend npx prisma db push
+```
+
+### Sem Docker
+
+```bash
+# Backend
 cd backend
 pnpm install
 pnpm run server
-```
 
-### Frontend
-
-```bash
+# Frontend
 pnpm install
 pnpm run dev
 ```
@@ -80,10 +97,23 @@ pnpm run dev
 - ✅ Progresso semanal/mensal
 - ✅ Interface responsiva
 - ✅ API RESTful
+- ✅ Deploy containerizado
+- ✅ PostgreSQL externo (EasyPanel)
 
 ## 🏗️ Tecnologias
 
 - **Frontend**: React + TypeScript + Vite + Tailwind CSS
 - **Backend**: Node.js + Express + TypeScript + Prisma
-- **Database**: PostgreSQL
-- **Deploy**: Railway + Nixpacks
+- **Database**: PostgreSQL (EasyPanel)
+- **Deploy**: Docker + Docker Compose + Nginx
+
+## 🚀 URLs de Acesso
+
+- **Frontend**: http://localhost
+- **Backend API**: http://localhost:4000
+- **Health Check**: http://localhost:4000/health
+
+## 📚 Documentação
+
+- [Guia de Deploy Docker](docker-deploy-guide.md)
+- [Guia de Deploy Nixpacks](deploy-guide.md)
