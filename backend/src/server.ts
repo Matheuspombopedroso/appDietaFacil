@@ -9,6 +9,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Log para debug do Railway
+console.log("Starting server...");
+console.log("Database URL:", process.env.DATABASE_URL ? "Set" : "Not set");
+
 const entrySchema = z.object({
   date: z.string().datetime(),
   weightKg: z.number().positive(),
@@ -90,6 +94,15 @@ app.get("/api/progress", async (_req, res) => {
   res.json({ weeks, months });
 });
 
-app.listen(4000, () => console.log("API running on http://localhost:4000"));
+// Health check endpoint
+app.get("/health", (_req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
+const port = process.env.PORT || 4000;
+app.listen(port, () => {
+  console.log(`API running on http://localhost:${port}`);
+  console.log("Environment:", process.env.NODE_ENV || "development");
+});
 
 export default app; // for tests

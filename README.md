@@ -1,35 +1,89 @@
 # Weight Tracker App
 
-Simple full‑stack app to log daily weight & calories and track weekly/monthly goals.
+Aplicação para rastreamento de peso e calorias com interface React e backend Node.js.
 
-```bash
-# Prerequisites
-npm i -g pnpm prisma
-pnpm create vite weight-tracker --template react-ts
-cd weight-tracker
-pnpm add react-router-dom@6 tailwindcss postcss autoprefixer
-npx tailwindcss init -p
-# backend deps
-pnpm add -w express cors prisma @prisma/client zod
-pnpm add -w -D ts-node-dev typescript @types/express @types/cors
-# tests
-pnpm add -w -D jest ts-jest @types/jest supertest @types/supertest
+## 🚀 Deploy com Nixpacks
+
+### Estrutura do Projeto
+
+```
+weight-tracker/
+├── src/                 # Frontend React
+├── backend/            # Backend Node.js + Express
+├── prisma/            # Schema do banco de dados
+├── nixpacks.toml      # Configuração Nixpacks (Frontend)
+└── backend/nixpacks.toml  # Configuração Nixpacks (Backend)
 ```
 
-1. Configure `.env` ⇒ `DATABASE_URL="postgresql://postgres:password@localhost:5432/weight_tracker?schema=public"`
-2. `pnpm prisma migrate dev --name init`
-3. `pnpm ts-node-dev backend/src/server.ts`
-4. `pnpm dev` (frontend)
+### Deploy no Railway
 
-## Features
+#### 1. Backend
 
-- **Daily Entry**: Log weight and calories for each day
-- **Progress Tracking**: View weekly and monthly weight loss progress
-- **Goal Tracking**: Set and monitor weekly/monthly weight loss goals
-- **Visual Feedback**: Green for achieved goals, red for missed targets
+```bash
+# 1. Conectar repositório ao Railway
+# 2. Configurar variáveis de ambiente:
+DATABASE_URL=postgresql://...
+PORT=4000
+NODE_ENV=production
 
-## Tech Stack
+# 3. Nixpacks detectará automaticamente:
+# - Node.js project
+# - Prisma migrations
+# - TypeScript build
+```
 
-- **Frontend**: React + TypeScript + Tailwind CSS
-- **Backend**: Express + Prisma + PostgreSQL
-- **Testing**: Jest + Supertest
+#### 2. Frontend
+
+```bash
+# 1. Conectar repositório ao Railway
+# 2. Nixpacks detectará automaticamente:
+# - React + Vite
+# - Build process
+# - Static files
+```
+
+### Variáveis de Ambiente
+
+#### Backend (.env)
+
+```env
+DATABASE_URL="postgresql://user:password@host:port/database"
+PORT=4000
+NODE_ENV=production
+```
+
+#### Frontend
+
+Configure a URL da API no arquivo de configuração do Vite.
+
+## 🛠️ Desenvolvimento Local
+
+### Backend
+
+```bash
+cd backend
+pnpm install
+pnpm run server
+```
+
+### Frontend
+
+```bash
+pnpm install
+pnpm run dev
+```
+
+## 📊 Funcionalidades
+
+- ✅ Registro de peso diário
+- ✅ Controle de calorias
+- ✅ Progresso semanal/mensal
+- ✅ Interface responsiva
+- ✅ API RESTful
+
+## 🏗️ Tecnologias
+
+- **Frontend**: React + TypeScript + Vite + Tailwind CSS
+- **Backend**: Node.js + Express + TypeScript + Prisma
+- **Database**: PostgreSQL
+- **Deploy**: Railway + Nixpacks
