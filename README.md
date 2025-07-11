@@ -8,20 +8,16 @@ Aplicação para rastreamento de peso e calorias com interface React e backend N
 
 ```
 weight-tracker/
-├── Dockerfile              # Frontend (React + Nginx)
+├── Dockerfile              # Frontend (React + Nginx) - Local
+├── Dockerfile.easypanel    # Frontend (React + Nginx) - EasyPanel
 ├── backend/Dockerfile      # Backend (Node.js + Express)
-├── docker-compose.yml      # Orquestração (sem PostgreSQL)
-├── nginx.conf             # Configuração Nginx
+├── docker-compose.yml      # Orquestração (Local)
+├── nginx.conf             # Configuração Nginx (Local)
+├── nginx-easypanel.conf   # Configuração Nginx (EasyPanel)
 └── prisma/               # Schema do banco de dados
 ```
 
-### Pré-requisitos
-
-- **Docker** e **Docker Compose** instalados
-- **PostgreSQL** configurado no EasyPanel
-- **Credenciais** do banco de dados
-
-### Deploy Rápido
+### Deploy Local (Docker Compose)
 
 ```bash
 # 1. Clone o repositório
@@ -30,33 +26,60 @@ cd weight-tracker
 
 # 2. Configure as variáveis de ambiente
 cp env.example .env
-# Edite .env com suas credenciais do EasyPanel
+# Edite .env com suas credenciais
 
-# 3. Teste a conexão com o banco
-docker-compose run --rm backend npx prisma migrate deploy
+# 3. Deploy com Docker Compose
+docker compose up -d --build
 
-# 4. Deploy com Docker Compose
-docker-compose up -d --build
-
-# 5. Acesse a aplicação
+# 4. Acesse a aplicação
 # Frontend: http://localhost
 # Backend: http://localhost:4000
 ```
 
+### Deploy EasyPanel (Separado)
+
+#### 1. Backend Service
+
+- **Dockerfile:** `backend/Dockerfile`
+- **Porta:** 4000
+- **Variáveis:** `DATABASE_URL`, `NODE_ENV`, `PORT`
+
+#### 2. Frontend Service
+
+- **Dockerfile:** `Dockerfile.easypanel`
+- **Porta:** 80
+- **Variáveis:** `BACKEND_URL`
+
+#### 3. Banco de Dados
+
+- **PostgreSQL** criado no EasyPanel
+- **Migrations** executadas automaticamente
+
 ### Variáveis de Ambiente
 
-Criar arquivo `.env`:
+#### Local (.env)
 
 ```env
-# Database (EasyPanel PostgreSQL)
-DATABASE_URL=postgresql://username:password@your-easypanel-host:5432/database_name?schema=public
+# Database (Local)
+DATABASE_URL=postgresql://postgres:password@postgres:5432/weight_tracker?schema=public
 
 # Backend
 NODE_ENV=production
 PORT=4000
+```
 
-# Frontend (opcional)
-VITE_API_URL=http://localhost:4000
+#### EasyPanel Backend
+
+```env
+DATABASE_URL=postgresql://username:password@your-easypanel-host:5432/database_name?schema=public
+NODE_ENV=production
+PORT=4000
+```
+
+#### EasyPanel Frontend
+
+```env
+BACKEND_URL=https://api.seu-dominio.com
 ```
 
 ## 🛠️ Desenvolvimento Local
@@ -65,16 +88,16 @@ VITE_API_URL=http://localhost:4000
 
 ```bash
 # Iniciar todos os serviços
-docker-compose up
+docker compose up
 
 # Ver logs
-docker-compose logs -f
+docker compose logs -f
 
 # Parar serviços
-docker-compose down
+docker compose down
 
 # Testar conexão com banco
-docker-compose run --rm backend npx prisma db push
+docker compose run --rm backend npx prisma db push
 ```
 
 ### Sem Docker
@@ -99,6 +122,7 @@ pnpm run dev
 - ✅ API RESTful
 - ✅ Deploy containerizado
 - ✅ PostgreSQL externo (EasyPanel)
+- ✅ Deploy separado (Frontend/Backend)
 
 ## 🏗️ Tecnologias
 
@@ -109,11 +133,20 @@ pnpm run dev
 
 ## 🚀 URLs de Acesso
 
+### Local
+
 - **Frontend**: http://localhost
 - **Backend API**: http://localhost:4000
 - **Health Check**: http://localhost:4000/health
 
+### EasyPanel
+
+- **Frontend**: https://seu-dominio.com
+- **Backend**: https://api.seu-dominio.com
+- **Health**: https://api.seu-dominio.com/health
+
 ## 📚 Documentação
 
 - [Guia de Deploy Docker](docker-deploy-guide.md)
+- [Guia de Deploy EasyPanel](easypanel-deploy-guide.md)
 - [Guia de Deploy Nixpacks](deploy-guide.md)
