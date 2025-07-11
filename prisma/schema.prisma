@@ -1,0 +1,24 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Entry {
+  id        Int      @id @default(autoincrement())
+  date      DateTime @unique
+  weightKg  Float
+  calories  Int
+}
+
+model Goal {
+  id              Int   @id @default(autoincrement())
+  year            Int
+  month           Int   // 1‑12
+  weekOfYear      Int   // ISO week number
+  weeklyTargetKg  Float
+  monthlyTargetKg Float
+} 
