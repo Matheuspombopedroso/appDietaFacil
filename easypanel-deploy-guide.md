@@ -10,9 +10,9 @@
 
 ### Frontend Service
 
-- **Dockerfile:** `Dockerfile.easypanel`
+- **Dockerfile:** `Dockerfile.frontend-only` (recomendado)
 - **Porta:** 80
-- **Proxy:** Para o backend via variável de ambiente
+- **API:** Acessa backend via URL externa
 
 ## 🔧 Configuração no EasyPanel
 
@@ -43,15 +43,15 @@ PORT=4000
 #### Criar novo projeto no EasyPanel:
 
 1. **Nome:** `weight-tracker-frontend`
-2. **Dockerfile:** `Dockerfile.easypanel`
+2. **Dockerfile:** `Dockerfile.frontend-only` (sem proxy)
 3. **Porta:** 80
 
 #### Variáveis de Ambiente:
 
 ```env
-BACKEND_URL=http://seu-backend-url:4000
+VITE_API_URL=https://api.seu-dominio.com
 # ou
-BACKEND_URL=https://api.seu-dominio.com
+VITE_API_URL=https://seu-backend-url:4000
 ```
 
 #### Configurações:
@@ -81,18 +81,13 @@ npx prisma migrate deploy
 
 ## 🔗 Conectando Frontend e Backend
 
-### Opção 1: URL Externa
+### Frontend Acessa API Diretamente:
+
+O frontend agora usa `VITE_API_URL` para acessar a API diretamente, sem proxy nginx.
 
 ```env
 # No frontend service
-BACKEND_URL=https://api.seu-dominio.com
-```
-
-### Opção 2: IP Interno
-
-```env
-# No frontend service
-BACKEND_URL=http://IP-DO-BACKEND:4000
+VITE_API_URL=https://api.seu-dominio.com
 ```
 
 ## 📝 Passo a Passo
@@ -108,12 +103,13 @@ BACKEND_URL=http://IP-DO-BACKEND:4000
 2. Usar `backend/Dockerfile`
 3. Configurar variáveis de ambiente
 4. Deploy e aguardar estar online
+5. Anotar URL do backend
 
 ### 3. Deploy Frontend
 
 1. Criar projeto `weight-tracker-frontend`
-2. Usar `Dockerfile.easypanel`
-3. Configurar BACKEND_URL
+2. Usar `Dockerfile.frontend-only`
+3. Configurar `VITE_API_URL` com URL do backend
 4. Deploy
 
 ### 4. Testar
@@ -134,16 +130,21 @@ BACKEND_URL=http://IP-DO-BACKEND:4000
 ### Frontend não acessa API:
 
 ```bash
-# Verificar BACKEND_URL
+# Verificar VITE_API_URL
 # Verificar se backend está rodando
 # Testar health check
 ```
 
 ### Nginx erro "host not found":
 
-- Verificar se BACKEND_URL está correto
-- Verificar se backend está online
-- Aguardar alguns minutos após deploy
+**SOLUÇÃO:** Usar `Dockerfile.frontend-only` que não tem proxy nginx.
+
+### Frontend mostra erro de CORS:
+
+```bash
+# Verificar se VITE_API_URL está correto
+# Verificar se backend tem CORS configurado
+```
 
 ## 🚀 URLs Finais
 
@@ -181,3 +182,20 @@ Após deploy:
 
 - Usar **secrets** do EasyPanel para DATABASE_URL
 - Não commitar credenciais no código
+
+## 🎯 Soluções para Erros Comuns
+
+### Erro: "host not found in upstream"
+
+**Causa:** Nginx tentando resolver nome de serviço que não existe
+**Solução:** Usar `Dockerfile.frontend-only` sem proxy
+
+### Erro: "CORS policy"
+
+**Causa:** Frontend tentando acessar API de domínio diferente
+**Solução:** Configurar `VITE_API_URL` corretamente
+
+### Erro: "Database connection failed"
+
+**Causa:** DATABASE_URL incorreta ou banco não acessível
+**Solução:** Verificar credenciais e conectividade
