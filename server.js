@@ -30,6 +30,31 @@ app.post("/api/entries", async (req, res) => {
   }
 });
 
+app.get("/api/entries", async (_req, res) => {
+  try {
+    const entries = await prisma.entry.findMany({ orderBy: { date: "asc" } });
+    res.json(entries);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/api/entries/:date", async (req, res) => {
+  const { date } = req.params;
+  try {
+    const entry = await prisma.entry.findUnique({
+      where: { date: new Date(date) },
+    });
+    if (entry) {
+      res.json(entry);
+    } else {
+      res.status(404).json({ message: "Entry not found" });
+    }
+  } catch (error) {
+    res.status(400).json({ message: "Invalid date format" });
+  }
+});
+
 app.get("/api/progress", async (_req, res) => {
   try {
     const entries = await prisma.entry.findMany({ orderBy: { date: "asc" } });
